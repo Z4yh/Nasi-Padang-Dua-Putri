@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tp_md_kategori_menu', function (Blueprint $table) {
-            $table->id('id_kategori_menu');
-            $table->string('nama_kategori');
-            $table->string('slug_kategori')->unique();
-            $table->integer('urutan')->default(0);
+        Schema::create('tigaputri_md_cms_beranda', function (Blueprint $table) {
+            $table->increments('id_cms_beranda');
+            $table->string('hero_title', 150);
+            $table->string('foto_warung', 255)->nullable();
+            $table->string('jam_buka', 100);
+            $table->string('no_whatsapp_reservasi', 20);
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tp_md_kategori_menu');
+        Schema::dropIfExists('tigaputri_md_cms_beranda');
     }
 };

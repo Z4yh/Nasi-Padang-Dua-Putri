@@ -10,7 +10,7 @@ class KategoriMenu extends Model
 {
     use HasFactory;
 
-    protected $table = 'tp_md_kategori_menu';
+    protected $table = 'tigaputri_md_kategori_menu';
     protected $primaryKey = 'id_kategori_menu';
 
     protected $fillable = [
@@ -36,6 +36,6 @@ class KategoriMenu extends Model
      */
     public function menus(): HasMany
     {
-        return $this->hasMany(Menu::class, 'id_kategori_menu', 'id_kategori_menu');
+        return $this->menu();
     }
 }

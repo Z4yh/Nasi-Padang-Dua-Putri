@@ -5,13 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class Menu extends Model
 {
     use HasFactory;
 
-    protected $table = 'tp_menu';
+    protected $table = 'tigaputri_md_menu';
     protected $primaryKey = 'id_menu';
 
     protected $fillable = [
@@ -34,6 +35,30 @@ class Menu extends Model
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(KategoriMenu::class, 'id_kategori_menu', 'id_kategori_menu');
+    }
+
+    /**
+     * Relasi ke Detail Transaksi Kasir.
+     */
+    public function detailTransaksiKasir(): HasMany
+    {
+        return $this->hasMany(DetailTransaksiKasir::class, 'id_menu', 'id_menu');
+    }
+
+    /**
+     * Relasi ke Detail Katering.
+     */
+    public function kateringDetails(): HasMany
+    {
+        return $this->hasMany(KateringDetail::class, 'id_menu', 'id_menu');
+    }
+
+    /**
+     * Relasi ke CMS Menu Favorit.
+     */
+    public function cmsMenuFavorits(): HasMany
+    {
+        return $this->hasMany(CmsMenuFavorit::class, 'id_menu', 'id_menu');
     }
 
     /**

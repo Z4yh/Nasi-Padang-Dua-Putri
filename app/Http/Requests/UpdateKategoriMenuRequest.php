@@ -30,8 +30,8 @@ class UpdateKategoriMenuRequest extends FormRequest
             'nama_kategori' => [
                 'required',
                 'string',
-                'max:255',
-                Rule::unique('tp_md_kategori_menu', 'nama_kategori')->ignore($kategoriId, 'id_kategori_menu'),
+                'max:50',
+                Rule::unique('tigaputri_md_kategori_menu', 'nama_kategori')->ignore($kategoriId, 'id_kategori_menu'),
             ],
             'urutan' => ['nullable', 'integer', 'min:0'],
         ];
