@@ -22,7 +22,7 @@ class StoreKategoriMenuRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nama_kategori' => ['required', 'string', 'max:255', 'unique:tp_md_kategori_menu,nama_kategori'],
+            'nama_kategori' => ['required', 'string', 'max:50', 'unique:tigaputri_md_kategori_menu,nama_kategori'],
             'urutan'        => ['nullable', 'integer', 'min:0'],
         ];
     }

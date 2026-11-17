@@ -27,12 +27,12 @@ class UpdateMenuRequest extends FormRequest
         $menuId = $menu instanceof Menu ? $menu->id_menu : $menu;
 
         return [
-            'id_kategori_menu' => ['required', 'exists:tp_md_kategori_menu,id_kategori_menu'],
+            'id_kategori_menu' => ['required', 'exists:tigaputri_md_kategori_menu,id_kategori_menu'],
             'nama_menu'        => [
                 'required',
                 'string',
-                'max:255',
-                Rule::unique('tp_menu', 'nama_menu')->ignore($menuId, 'id_menu'),
+                'max:100',
+                Rule::unique('tigaputri_md_menu', 'nama_menu')->ignore($menuId, 'id_menu'),
             ],
             'harga'       => ['required', 'numeric', 'min:0'],
             'deskripsi'   => ['nullable', 'string'],

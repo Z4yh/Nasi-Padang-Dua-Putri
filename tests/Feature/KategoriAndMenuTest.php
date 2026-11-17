@@ -39,7 +39,7 @@ class KategoriAndMenuTest extends TestCase
         ]);
 
         $response->assertRedirect(route('kategori-menu.index'));
-        $this->assertDatabaseHas('tp_md_kategori_menu', [
+        $this->assertDatabaseHas('tigaputri_md_kategori_menu', [
             'nama_kategori' => 'Lauk Pauk Utama',
             'slug_kategori' => 'lauk-pauk-utama',
             'urutan'        => 1,
@@ -82,7 +82,7 @@ class KategoriAndMenuTest extends TestCase
         $response->assertRedirect(route('kategori-menu.index'));
         $response->assertSessionHas('error');
 
-        $this->assertDatabaseHas('tp_md_kategori_menu', [
+        $this->assertDatabaseHas('tigaputri_md_kategori_menu', [
             'id_kategori_menu' => $kategori->id_kategori_menu,
         ]);
     }
