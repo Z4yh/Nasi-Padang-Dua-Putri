@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -42,7 +43,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Boot hook untuk memastikan username, role, dan status_aktif terisi secara default.
+     * Boot hook untuk memastikan username, role, dan status_aktif terisi otomatis.
      */
     protected static function booted(): void
     {
@@ -58,14 +59,28 @@ class User extends Authenticatable
                 $user->username = $username;
             }
 
+            // Default role diarahkan ke 'penjual' sesuai enum database
             if (empty($user->role)) {
-                $user->role = 'pelanggan';
+                $user->role = 'penjual';
             }
 
             if (!isset($user->status_aktif)) {
                 $user->status_aktif = 1;
             }
         });
+    }
+
+    /**
+     * Helper pengecekan peran (Role Checks).
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isPenjual(): bool
+    {
+        return $this->role === 'penjual';
     }
 
     /**
@@ -78,7 +93,7 @@ class User extends Authenticatable
 
     public function getNameAttribute(): ?string
     {
-        return $this->nama_lengkap;
+        return $this->nama_lengkap ?? $this->attributes['nama_lengkap'] ?? null;
     }
 
     public function setNameAttribute(?string $value): void
@@ -115,6 +130,11 @@ class User extends Authenticatable
     public function emailOtps(): HasMany
     {
         return $this->hasMany(EmailOtp::class, 'id_user', 'id_user');
+    }
+
+    public function latestOtp(): HasOne
+    {
+        return $this->hasOne(EmailOtp::class, 'id_user', 'id_user')->latestOfMany('created_at');
     }
 
     /**
