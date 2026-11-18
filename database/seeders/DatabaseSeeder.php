@@ -145,5 +145,7 @@ class DatabaseSeeder extends Seeder
                 'status_stok'      => 'tersedia',
             ]
         );
+
+        $this->call(DummyDataSeeder::class);
     }
 }
