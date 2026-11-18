@@ -34,19 +34,33 @@ class KateringOrderFactory extends Factory
         $status = fake()->randomElement(['menunggu_dp', 'diproses', 'siap_kirim', 'selesai', 'dibatalkan']);
         $dp = 0;
         $sisa = $totalTagihan;
-        $tanggalKirim = now()->addDays(fake()->numberBetween(1, 7))->toDateString();
 
-        if ($status === 'selesai') {
-            $tanggalKirim = now()->subDays(fake()->numberBetween(1, 30))->toDateString();
+        if (in_array($status, ['menunggu_dp', 'diproses', 'siap_kirim'])) {
+            // 1. Status aktif: WAJIB di masa depan (minimal 1 hari ke depan)
+            $tanggalKirim = now()->addDays(fake()->numberBetween(1, 7))->toDateString();
+            $createdAt = now()->subDays(fake()->numberBetween(0, 2));
+
+            if (in_array($status, ['diproses', 'siap_kirim'])) {
+                $dp = $totalTagihan * 0.5;
+                $sisa = $totalTagihan - $dp;
+            }
+        } elseif ($status === 'selesai') {
+            // 2. Status selesai: di masa lalu dengan DP lunas dan sisa tagihan 0
+            $hariLalu = fake()->numberBetween(1, 30);
+            $tanggalKirim = now()->subDays($hariLalu)->toDateString();
+            $createdAt = now()->subDays($hariLalu + fake()->numberBetween(1, 3));
             $dp = $totalTagihan;
             $sisa = 0;
-        } elseif (in_array($status, ['diproses', 'siap_kirim'])) {
-            $dp = $totalTagihan * 0.5;
-            $sisa = $totalTagihan - $dp;
+        } else {
+            // 3. Status dibatalkan: di masa depan atau hari ini saja (0 s/d 5 hari ke depan)
+            $tanggalKirim = now()->addDays(fake()->numberBetween(0, 5))->toDateString();
+            $createdAt = now()->subDays(fake()->numberBetween(0, 2));
+            $dp = 0;
+            $sisa = $totalTagihan;
         }
 
         return [
-            'nomor_pesanan' => 'INV/TP-KTR/' . now()->format('Y/m') . '/' . fake()->unique()->numerify('###'),
+            'nomor_pesanan' => 'INV/TP-KTR/' . $createdAt->format('Y/m') . '/' . fake()->unique()->numerify('###'),
             'id_user' => fake()->boolean(70) ? ($pelanggan?->id_user ?? 3) : null,
             'nama_pemesan' => fake()->name(),
             'no_whatsapp' => '08' . fake()->numerify('##########'),
@@ -59,8 +73,8 @@ class KateringOrderFactory extends Factory
             'sisa_tagihan' => $sisa,
             'bukti_bayar' => in_array($status, ['diproses', 'siap_kirim', 'selesai']) ? 'bukti_bayar/sample.jpg' : null,
             'status_pesanan' => $status,
-            'created_at' => now()->subDays(1),
-            'updated_at' => now(),
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
         ];
     }
 }
