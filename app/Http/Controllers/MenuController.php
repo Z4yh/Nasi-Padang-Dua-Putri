@@ -8,6 +8,7 @@ use App\Models\KategoriMenu;
 use App\Models\Menu;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -15,7 +16,9 @@ use Illuminate\View\View;
 class MenuController extends Controller
 {
     /**
-     * Tampilkan katalog menu dengan eager load kategori, filter pencarian, dan paginasi.
+     * Tampilkan katalog menu.
+     * Jika diakses oleh staff (penjual / super_admin) dan tidak dalam mode preview publik, tampilkan tabel manajemen menu.
+     * Jika diakses oleh pengunjung/guest (atau staff dengan query ?view=public), tampilkan halaman katalog publik.
      */
     public function index(Request $request): View
     {
@@ -23,9 +26,37 @@ class MenuController extends Controller
         $kategoriId = $request->query('id_kategori_menu');
         $statusStok = $request->query('status_stok');
 
+        $isStaff = Auth::check() && in_array(Auth::user()->role, ['penjual', 'super_admin']);
+        $wantsPublic = $request->query('view') === 'public';
+
+        // Tampilan Admin / Penjual (Tabel Manajemen Menu)
+        if ($isStaff && ! $wantsPublic) {
+            $menuList = Menu::with('kategori')
+                ->when($search, function ($query, $search) {
+                    $query->where('nama_menu', 'like', "%{$search}%");
+                })
+                ->when($kategoriId, function ($query, $kategoriId) {
+                    $query->where('id_kategori_menu', $kategoriId);
+                })
+                ->when($statusStok, function ($query, $statusStok) {
+                    $query->where('status_stok', $statusStok);
+                })
+                ->latest('id_menu')
+                ->paginate(10)
+                ->withQueryString();
+
+            $kategoriList = KategoriMenu::orderBy('urutan')->get();
+
+            return view('menu.index', compact('menuList', 'kategoriList', 'search', 'kategoriId', 'statusStok'));
+        }
+
+        // Tampilan Publik / Pengunjung (Katalog Card Grid Tanpa Login)
         $menuList = Menu::with('kategori')
             ->when($search, function ($query, $search) {
-                $query->where('nama_menu', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('nama_menu', 'like', "%{$search}%")
+                      ->orWhere('deskripsi', 'like', "%{$search}%");
+                });
             })
             ->when($kategoriId, function ($query, $kategoriId) {
                 $query->where('id_kategori_menu', $kategoriId);
@@ -34,12 +65,12 @@ class MenuController extends Controller
                 $query->where('status_stok', $statusStok);
             })
             ->latest('id_menu')
-            ->paginate(10)
+            ->paginate(12)
             ->withQueryString();
 
         $kategoriList = KategoriMenu::orderBy('urutan')->get();
 
-        return view('menu.index', compact('menuList', 'kategoriList', 'search', 'kategoriId', 'statusStok'));
+        return view('menu.public', compact('menuList', 'kategoriList', 'search', 'kategoriId', 'statusStok'));
     }
 
     /**
