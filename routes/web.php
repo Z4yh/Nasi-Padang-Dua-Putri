@@ -44,10 +44,8 @@ Route::middleware(['auth', 'role:penjual,super_admin'])->group(function () {
     Route::patch('menu/{menu}/toggle-status', [MenuController::class, 'toggleStatus'])->name('menu.toggle-status');
     Route::resource('menu', MenuController::class)->except(['index', 'show']);
 
-    // Modul Operasional Penjual & Admin
-    Route::get('/katering', function () {
-        return view('dashboard', ['title' => 'Manajemen Katering']);
-    })->name('katering.index');
+    // Modul Operasional Penjual & Admin (Katering dikelola via routes/katering.php)
+
 
     Route::get('/kasir', function () {
         return view('dashboard', ['title' => 'Sistem Kasir & Transaksi']);
@@ -78,4 +76,5 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     })->name('kelola-akun.index');
 });
 
+require __DIR__.'/katering.php';
 require __DIR__.'/auth.php';
