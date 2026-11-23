@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Sembunyikan ikon mata bawaan browser (Edge/IE) agar tidak dobel dengan tombol toggle kustom */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none !important;
+}
+

@@ -21,6 +21,11 @@
             .font-brand-sub {
                 font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
+            /* Sembunyikan ikon mata bawaan browser (Edge/IE) agar tidak dobel dengan tombol toggle kustom */
+            input::-ms-reveal,
+            input::-ms-clear {
+                display: none !important;
+            }
         </style>
 
         <!-- Scripts -->
