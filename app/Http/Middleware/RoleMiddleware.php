@@ -18,6 +18,9 @@ class RoleMiddleware
     {
         // 1. Pastikan pengguna sudah login
         if (! $request->user()) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                abort(401, 'Unauthenticated.');
+            }
             return redirect()->route('login');
         }
 
@@ -36,7 +39,7 @@ class RoleMiddleware
 
         // 3. Periksa apakah role pengguna cocok
         if (! in_array($userRole, $allowedRoles, true)) {
-            abort(403, 'Akses tidak diizinkan untuk peran akun Anda (' . ($userRole ?? 'Unknown') . ').');
+            abort(403, 'Tidak punya akses');
         }
 
         return $next($request);

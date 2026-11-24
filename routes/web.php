@@ -78,4 +78,5 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 
 require __DIR__.'/katering.php';
 require __DIR__.'/riwayat.php';
+require __DIR__.'/finance.php';
 require __DIR__.'/auth.php';

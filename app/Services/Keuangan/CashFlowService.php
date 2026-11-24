@@ -28,7 +28,8 @@ class CashFlowService
      *     category: string|null,
      *     amount: int,
      *     occurred_at: Carbon,
-     *     ref_id: int|string
+     *     ref_id: int|string,
+     *     editable: bool
      * }>
      */
     public function getEntries(
@@ -39,7 +40,7 @@ class CashFlowService
         $entries = collect();
 
         // 1. Kasir POS (Pemasukan)
-        if ($typeFilter === null || $typeFilter === 'in') {
+        if ($typeFilter === null || $typeFilter === 'all' || $typeFilter === 'in') {
             $posEntries = $this->fetchPosEntries($start, $end);
             $entries = $entries->concat($posEntries);
 
@@ -49,13 +50,82 @@ class CashFlowService
         }
 
         // 3. Pengeluaran (Pengeluaran)
-        if ($typeFilter === null || $typeFilter === 'out') {
+        if ($typeFilter === null || $typeFilter === 'all' || $typeFilter === 'out') {
             $expenseEntries = $this->fetchExpenseEntries($start, $end);
             $entries = $entries->concat($expenseEntries);
         }
 
-        // Urutkan terbaru di atas (descending berdasarkan occurred_at)
-        return $entries->sortByDesc(fn (array $item) => $item['occurred_at']->getTimestamp())->values();
+        // Urutkan terbaru di atas (descending berdasarkan occurred_at, tie-break id descending)
+        return $entries->sort(function (array $a, array $b) {
+            $timeCmp = $b['occurred_at']->getTimestamp() <=> $a['occurred_at']->getTimestamp();
+            if ($timeCmp !== 0) {
+                return $timeCmp;
+            }
+            return strcmp((string) $b['id'], (string) $a['id']);
+        })->values();
+    }
+
+    /**
+     * Mengambil entri riwayat arus kas dengan dukungan cursor pagination.
+     *
+     * @param CarbonInterface $start
+     * @param CarbonInterface $end
+     * @param string $typeFilter 'all', 'in', 'out'
+     * @param string|null $cursor Base64 encoded offset
+     * @param int $limit Default 20, maks 50
+     * @return array{
+     *     items: array,
+     *     total_count: int,
+     *     next_cursor: string|null
+     * }
+     */
+    public function getPaginatedEntries(
+        CarbonInterface $start,
+        CarbonInterface $end,
+        string $typeFilter = 'all',
+        ?string $cursor = null,
+        int $limit = 20
+    ): array {
+        $filter = ($typeFilter === 'all') ? null : $typeFilter;
+        $allEntries = $this->getEntries($start, $end, $filter);
+        $totalCount = $allEntries->count();
+
+        $limit = min(max(1, $limit), 50);
+
+        $offset = 0;
+        if ($cursor !== null && $cursor !== '') {
+            $decoded = base64_decode($cursor, true);
+            if ($decoded !== false && is_numeric($decoded)) {
+                $offset = max(0, (int) $decoded);
+            }
+        }
+
+        $items = $allEntries->slice($offset, $limit)->map(function (array $item) {
+            return [
+                'id' => $item['id'],
+                'type' => $item['type'],
+                'source' => $item['source'],
+                'title' => $item['title'],
+                'subtitle' => $item['subtitle'],
+                'method' => $item['method'],
+                'category' => $item['category'],
+                'amount' => (int) $item['amount'],
+                'occurred_at' => $item['occurred_at']->toIso8601String(),
+                'ref_id' => $item['ref_id'],
+                'editable' => (bool) $item['editable'],
+            ];
+        })->values()->all();
+
+        $nextCursor = null;
+        if ($offset + $limit < $totalCount) {
+            $nextCursor = base64_encode((string) ($offset + $limit));
+        }
+
+        return [
+            'items' => $items,
+            'total_count' => $totalCount,
+            'next_cursor' => $nextCursor,
+        ];
     }
 
     /**
@@ -89,6 +159,7 @@ class CashFlowService
                 'amount' => $amount,
                 'occurred_at' => Carbon::parse($tx->created_at)->setTimezone(CashFlowPeriodHelper::TIMEZONE),
                 'ref_id' => $tx->id_transaksi,
+                'editable' => false,
             ];
         });
     }
@@ -102,7 +173,6 @@ class CashFlowService
     {
         $entries = collect();
 
-        // Cari pesanan katering yang tidak dibatalkan
         $orders = KateringOrder::query()
             ->where('status_pesanan', '!=', 'dibatalkan')
             ->where(function ($query) use ($start, $end) {
@@ -136,6 +206,7 @@ class CashFlowService
                     'amount' => $nominalDp,
                     'occurred_at' => $createdAt,
                     'ref_id' => $order->id_katering,
+                    'editable' => false,
                 ]);
             }
 
@@ -154,6 +225,7 @@ class CashFlowService
                         'amount' => $totalTagihan,
                         'occurred_at' => $updatedAt,
                         'ref_id' => $order->id_katering,
+                        'editable' => false,
                     ]);
                 } elseif ($sisaTagihan > 0 && $nominalDp > 0) {
                     // Pembayaran sisa tagihan saat pesanan selesai
@@ -168,12 +240,91 @@ class CashFlowService
                         'amount' => $sisaTagihan,
                         'occurred_at' => $updatedAt,
                         'ref_id' => $order->id_katering,
+                        'editable' => false,
                     ]);
                 }
             }
         }
 
         return $entries;
+    }
+
+    /**
+     * Rincian ringkasan pesanan katering untuk endpoint summary.
+     * Mengembalikan total, order_count, dan top 3 items.
+     *
+     * @return array{total: int, order_count: int, items: array}
+     */
+    public function fetchCateringSummary(CarbonInterface $start, CarbonInterface $end): array
+    {
+        $items = [];
+        $total = 0;
+
+        $orders = KateringOrder::query()
+            ->where('status_pesanan', '!=', 'dibatalkan')
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('created_at', [$start, $end])
+                      ->orWhereBetween('updated_at', [$start, $end]);
+            })
+            ->get();
+
+        foreach ($orders as $order) {
+            $totalTagihan = (int) round((float) $order->total_tagihan);
+            $nominalDp = (int) round((float) $order->nominal_dp);
+            $sisaTagihan = max(0, $totalTagihan - $nominalDp);
+
+            $createdAt = Carbon::parse($order->created_at)->setTimezone(CashFlowPeriodHelper::TIMEZONE);
+            $updatedAt = Carbon::parse($order->updated_at)->setTimezone(CashFlowPeriodHelper::TIMEZONE);
+
+            $porsiLabel = $order->total_boks_pesan > 0 ? " ({$order->total_boks_pesan} porsi)" : '';
+            $title = $order->nama_pemesan . $porsiLabel;
+
+            // 1. DP
+            if ($nominalDp > 0 && $createdAt >= $start && $createdAt < $end) {
+                $isFull = ($order->status_pesanan === 'selesai' && $sisaTagihan === 0 && $nominalDp >= $totalTagihan);
+                $dpPct = $totalTagihan > 0 ? (int) round(($nominalDp / $totalTagihan) * 100) : 100;
+
+                $item = [
+                    'code' => $order->nomor_pesanan,
+                    'title' => $title,
+                    'amount' => $nominalDp,
+                    'status' => $isFull ? 'lunas' : 'dp',
+                ];
+                if (! $isFull) {
+                    $item['dp_pct'] = $dpPct;
+                }
+
+                $items[] = $item;
+                $total += $nominalDp;
+            }
+
+            // 2. Selesai (Lunas / Pelunasan)
+            if ($order->status_pesanan === 'selesai' && $updatedAt >= $start && $updatedAt < $end) {
+                if ($nominalDp <= 0 && $totalTagihan > 0) {
+                    $items[] = [
+                        'code' => $order->nomor_pesanan,
+                        'title' => $title,
+                        'amount' => $totalTagihan,
+                        'status' => 'lunas',
+                    ];
+                    $total += $totalTagihan;
+                } elseif ($sisaTagihan > 0 && $nominalDp > 0) {
+                    $items[] = [
+                        'code' => $order->nomor_pesanan,
+                        'title' => $title,
+                        'amount' => $sisaTagihan,
+                        'status' => 'lunas',
+                    ];
+                    $total += $sisaTagihan;
+                }
+            }
+        }
+
+        return [
+            'total' => $total,
+            'order_count' => count($items),
+            'items' => array_slice($items, 0, 3),
+        ];
     }
 
     /**
@@ -203,12 +354,92 @@ class CashFlowService
                 'amount' => (int) $exp->amount,
                 'occurred_at' => Carbon::parse($exp->occurred_at)->setTimezone(CashFlowPeriodHelper::TIMEZONE),
                 'ref_id' => $exp->id,
+                'editable' => true,
             ];
         });
     }
 
     /**
-     * Hitung ringkasan lengkap arus kas untuk periode tertentu, termasuk perbandingan dengan periode lalu.
+     * Hitung ringkasan lengkap arus kas sesuai format resmi PRD 4.1 untuk GET /api/finance/summary.
+     *
+     * @param string $period 'day', 'week', 'month', 'year'
+     * @param DateTimeInterface|string|null $referenceDate
+     * @return array
+     */
+    public function getFinanceSummary(string $period = 'day', DateTimeInterface|string|null $referenceDate = null): array
+    {
+        $range = CashFlowPeriodHelper::getPeriodRange($period, $referenceDate);
+
+        // Agregat periode utama
+        $mainAggregates = $this->calculatePeriodAggregates($range['start'], $range['end']);
+
+        // Agregat periode pembanding (untuk pertumbuhan %)
+        $compAggregates = $this->calculatePeriodAggregates($range['comparison_start'], $range['comparison_end']);
+        $labaPembanding = $compAggregates['laba_bersih'];
+
+        // Rumus keuangan murni
+        $summary = CashFlowCalculator::calculateSummary(
+            $mainAggregates['masuk_pos'],
+            $mainAggregates['masuk_katering'],
+            $mainAggregates['keluar_pasar_subuh'],
+            $mainAggregates['keluar_operasional'],
+            $labaPembanding
+        );
+
+        $compareLabel = match ($period) {
+            'day' => 'vs kemarin',
+            'week' => 'vs minggu lalu',
+            'month' => 'vs bulan lalu',
+            'year' => 'vs tahun lalu',
+            default => 'vs periode lalu',
+        };
+
+        // Rincian Katering
+        $cateringSummary = $this->fetchCateringSummary($range['start'], $range['end']);
+
+        return [
+            'period' => $range['period'],
+            'range' => [
+                'start' => $range['start']->toIso8601String(),
+                'end' => $range['end']->toIso8601String(),
+            ],
+            'label' => $range['label'],
+            'net_profit' => $summary['laba_bersih'],
+            'margin_pct' => $summary['margin_persen'],
+            'growth_pct' => $summary['pertumbuhan_persen'],
+            'compare_label' => $compareLabel,
+            'total_in' => $summary['total_masuk'],
+            'total_out' => $summary['total_keluar'],
+            'in_pct' => $summary['kas_masuk_persen'],
+            'out_pct' => $summary['kas_keluar_persen'],
+            'in_breakdown' => [
+                'pos' => $mainAggregates['masuk_pos'],
+                'catering' => $mainAggregates['masuk_katering'],
+            ],
+            'out_breakdown' => [
+                'pasar_subuh' => $mainAggregates['keluar_pasar_subuh'],
+                'operasional' => $mainAggregates['keluar_operasional'],
+            ],
+            'sources' => [
+                'pos' => [
+                    'total' => $mainAggregates['masuk_pos'],
+                    'tx_count' => $mainAggregates['masuk_pos_count'],
+                    'cash_count' => $mainAggregates['masuk_pos_cash_count'],
+                    'qris_count' => $mainAggregates['masuk_pos_qris_count'],
+                    'cash_total' => $mainAggregates['masuk_pos_tunai'],
+                    'qris_total' => $mainAggregates['masuk_pos_qris'],
+                ],
+                'catering' => [
+                    'total' => $cateringSummary['total'],
+                    'order_count' => $cateringSummary['order_count'],
+                    'items' => $cateringSummary['items'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Hitung ringkasan lengkap arus kas untuk periode tertentu (kompatibilitas Commit 1).
      *
      * @param string $period 'day', 'week', 'month', 'year'
      * @param DateTimeInterface|string|null $referenceDate
@@ -218,14 +449,10 @@ class CashFlowService
     {
         $range = CashFlowPeriodHelper::getPeriodRange($period, $referenceDate);
 
-        // Hitung agregat periode utama
         $mainAggregates = $this->calculatePeriodAggregates($range['start'], $range['end']);
-
-        // Hitung laba bersih periode pembanding (untuk pertumbuhan %)
         $compAggregates = $this->calculatePeriodAggregates($range['comparison_start'], $range['comparison_end']);
         $labaPembanding = $compAggregates['laba_bersih'];
 
-        // Rumus keuangan murni
         $summary = CashFlowCalculator::calculateSummary(
             $mainAggregates['masuk_pos'],
             $mainAggregates['masuk_katering'],
@@ -260,20 +487,24 @@ class CashFlowService
         $masukPos = 0;
         $masukPosTunai = 0;
         $masukPosQris = 0;
+        $cashCount = 0;
+        $qrisCount = 0;
 
         foreach ($posTx as $tx) {
             $val = (int) round((float) $tx->subtotal);
             $masukPos += $val;
             if (strtolower($tx->metode_pembayaran ?: 'tunai') === 'qris') {
                 $masukPosQris += $val;
+                $qrisCount++;
             } else {
                 $masukPosTunai += $val;
+                $cashCount++;
             }
         }
 
         // 2. Katering
         $cateringEntries = $this->fetchCateringEntries($start, $end);
-        $masukKatering = $cateringEntries->sum('amount');
+        $masukKatering = (int) $cateringEntries->sum('amount');
 
         // 3. Expenses
         $expenses = Expense::query()
@@ -305,6 +536,8 @@ class CashFlowService
             'masuk_pos_tunai' => $masukPosTunai,
             'masuk_pos_qris' => $masukPosQris,
             'masuk_pos_count' => $posTx->count(),
+            'masuk_pos_cash_count' => $cashCount,
+            'masuk_pos_qris_count' => $qrisCount,
             'masuk_katering' => $masukKatering,
             'masuk_katering_count' => $cateringEntries->count(),
             'keluar_pasar_subuh' => $keluarPasarSubuh,
