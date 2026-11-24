@@ -58,6 +58,18 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-lg shadow-xs flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-sm font-medium">{{ session('error') }}</span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800 font-bold ml-2 text-lg">&times;</button>
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-lg shadow-xs">
                     <ul class="list-disc list-inside space-y-0.5 text-xs font-medium">
@@ -177,26 +189,29 @@
                         }
 
                         $cardBorder = match($order->status_pesanan) {
-                            'sedang_dimasak' => 'border-orange-300',
+                            'diproses' => 'border-orange-300',
                             'menunggu_dp' => 'border-amber-300',
-                            'sedang_diantar' => 'border-blue-300',
+                            'siap_kirim' => 'border-blue-300',
                             'selesai' => 'border-emerald-300',
+                            'dibatalkan' => 'border-red-300',
                             default => 'border-stone-200',
                         };
 
                         $timeColor = match($order->status_pesanan) {
-                            'sedang_dimasak' => 'text-orange-600',
+                            'diproses' => 'text-orange-600',
                             'menunggu_dp' => 'text-amber-700',
-                            'sedang_diantar' => 'text-blue-600',
+                            'siap_kirim' => 'text-blue-600',
                             'selesai' => 'text-stone-500',
+                            'dibatalkan' => 'text-red-600',
                             default => 'text-stone-600',
                         };
 
                         [$statusLabel, $statusPill] = match($order->status_pesanan) {
-                            'sedang_dimasak' => ['SEDANG DIMASAK', 'bg-amber-100 text-amber-800 border-amber-200'],
+                            'diproses' => ['SEDANG DIMASAK', 'bg-amber-100 text-amber-800 border-amber-200'],
                             'menunggu_dp' => ['MENUNGGU DP', 'bg-rose-100 text-rose-700 border-rose-200'],
-                            'sedang_diantar' => ['SEDANG DIANTAR', 'bg-blue-100 text-blue-700 border-blue-200'],
+                            'siap_kirim' => ['SIAP KIRIM', 'bg-blue-100 text-blue-700 border-blue-200'],
                             'selesai' => ['✓ SELESAI & TUNTAS', 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+                            'dibatalkan' => ['DIBATALKAN', 'bg-red-100 text-red-700 border-red-200'],
                             default => [strtoupper(str_replace('_', ' ', $order->status_pesanan)), 'bg-stone-100 text-stone-700 border-stone-200'],
                         };
                     @endphp
@@ -332,15 +347,26 @@
                             @else
                                 <div class="grid grid-cols-12 gap-1.5 items-center">
                                     {{-- Dropdown Status --}}
+                                    @php
+                                        $nextStatuses = $order->statusBerikutnya();
+                                        $isLocked = empty($nextStatuses) || in_array($order->status_pesanan, ['selesai', 'dibatalkan']);
+                                        $labels = \App\Models\KateringOrder::daftarLabelStatus();
+                                    @endphp
                                     <form action="{{ route('katering.status', $order) }}" method="POST" class="col-span-5">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="status_pesanan" onchange="this.form.submit()"
-                                            class="w-full py-2 px-2 rounded-lg border border-stone-300 bg-white text-[11px] font-bold text-stone-800 focus:outline-none focus:border-red-800">
-                                            <option value="menunggu_dp" {{ $order->status_pesanan === 'menunggu_dp' ? 'selected' : '' }}>Belum DP</option>
-                                            <option value="sedang_dimasak" {{ $order->status_pesanan === 'sedang_dimasak' ? 'selected' : '' }}>Dimasak</option>
-                                            <option value="sedang_diantar" {{ $order->status_pesanan === 'sedang_diantar' ? 'selected' : '' }}>Diantar</option>
-                                            <option value="selesai" {{ $order->status_pesanan === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                        <select name="status_pesanan" onchange="this.form.submit()" {{ $isLocked ? 'disabled' : '' }}
+                                            class="w-full py-2 px-2 rounded-lg border border-stone-300 {{ $isLocked ? 'bg-stone-100 text-stone-500 cursor-not-allowed' : 'bg-white text-stone-800' }} text-[11px] font-bold focus:outline-none focus:border-red-800">
+                                            {{-- Status saat ini (selalu terpilih) --}}
+                                            <option value="{{ $order->status_pesanan }}" selected>
+                                                {{ $labels[$order->status_pesanan] ?? ucfirst(str_replace('_', ' ', $order->status_pesanan)) }}
+                                            </option>
+                                            {{-- Status berikutnya yang diizinkan sesuai aturan urutan --}}
+                                            @foreach ($nextStatuses as $nextOpt)
+                                                <option value="{{ $nextOpt }}">
+                                                    {{ $labels[$nextOpt] ?? ucfirst(str_replace('_', ' ', $nextOpt)) }}
+                                                </option>
+                                            @endforeach
                                         </select>
                                     </form>
 

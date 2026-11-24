@@ -14,6 +14,9 @@ Route::get('/', function () {
 
 Route::get('/home', fn () => redirect()->route('beranda'));
 
+// Tampilan Menu Publik (Pengunjung/Guest dapat mengakses tanpa login)
+Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
+
 // =========================================================================
 // 2. RUTE DASAR TERAUTENTIKASI (Perlu Login)
 // =========================================================================
@@ -39,7 +42,7 @@ Route::middleware(['auth', 'role:penjual,super_admin'])->group(function () {
     // Katalog & Kategori Menu
     Route::resource('kategori-menu', KategoriMenuController::class)->except(['show']);
     Route::patch('menu/{menu}/toggle-status', [MenuController::class, 'toggleStatus'])->name('menu.toggle-status');
-    Route::resource('menu', MenuController::class)->except(['show']);
+    Route::resource('menu', MenuController::class)->except(['index', 'show']);
 
     // Modul Operasional Penjual & Admin (Katering dikelola via routes/katering.php)
 

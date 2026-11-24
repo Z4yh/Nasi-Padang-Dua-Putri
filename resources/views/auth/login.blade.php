@@ -53,6 +53,11 @@
         input:focus {
             outline: none;
         }
+        /* Sembunyikan ikon mata bawaan browser (Edge/IE) agar tidak dobel dengan tombol toggle kustom */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-[#FAF7F2] text-stone-800 antialiased flex flex-col justify-between py-6 px-4 sm:px-6">
@@ -253,9 +258,7 @@
                     type="submit"
                     class="w-full mt-4 py-3 px-4 bg-[#8A1315] hover:bg-[#700D0F] active:bg-[#5C0B0D] text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 text-sm sm:text-base group"
                 >
-                    <svg class="w-5 h-5 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 16l4-4m0 0l-4-4m4 4H3m9-10h7a2 2 0 012 2v14a2 2 0 01-2 2h-7" />
-                    </svg>
+                    
                     <span>Masuk</span>
                 </button>
             </form>

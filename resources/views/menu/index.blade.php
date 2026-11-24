@@ -9,13 +9,24 @@
                     Kelola daftar menu masakan, harga, foto, dan status ketersediaan stok
                 </p>
             </div>
-            <a href="{{ route('menu.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-red-700 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-red-800 focus:bg-red-800 active:bg-red-900 transition ease-in-out duration-150 shadow-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Tambah Menu Baru
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('menu.index', ['view' => 'public']) }}"
+                   target="_blank"
+                   class="inline-flex items-center px-4 py-2 bg-stone-100 border border-stone-300 rounded-lg font-medium text-sm text-stone-700 hover:bg-stone-200 transition ease-in-out duration-150 shadow-xs">
+                    <svg class="w-4 h-4 mr-2 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Lihat Tampilan Pengunjung
+                </a>
+                <a href="{{ route('menu.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-[#7B1113] border border-transparent rounded-lg font-medium text-sm text-white hover:bg-[#600D0F] transition ease-in-out duration-150 shadow-xs">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tambah Menu Baru
+                </a>
+            </div>
         </div>
     </x-slot>
 

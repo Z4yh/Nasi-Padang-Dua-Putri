@@ -23,11 +23,14 @@
 <!-- Google Fonts: Cinzel & Plus Jakarta Sans -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
     .font-brand-serif {
         font-family: 'Cinzel', Georgia, serif;
+    }
+    .font-brand-sub {
+        font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -65,7 +68,7 @@
                 <span class="font-brand-serif font-black text-xl sm:text-2xl tracking-[0.14em] text-[#7B1113] leading-none uppercase">
                     Tiga Putri
                 </span>
-                <span class="text-[8.5px] sm:text-[9.5px] font-bold tracking-[0.3em] text-stone-800 uppercase mt-0.5">
+                <span class="font-brand-sub text-[8.5px] sm:text-[9.5px] font-bold tracking-[0.3em] text-stone-800 uppercase mt-0.5">
                     Masakan Padang
                 </span>
             </a>
