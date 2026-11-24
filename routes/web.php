@@ -51,9 +51,7 @@ Route::middleware(['auth', 'role:penjual,super_admin'])->group(function () {
         return view('dashboard', ['title' => 'Sistem Kasir & Transaksi']);
     })->name('kasir.index');
 
-    Route::get('/keuangan', function () {
-        return view('dashboard', ['title' => 'Laporan Keuangan & Pengeluaran']);
-    })->name('keuangan.index');
+    Route::get('/keuangan', [\App\Http\Controllers\KeuanganController::class, 'index'])->name('keuangan.index');
 });
 
 // =========================================================================
