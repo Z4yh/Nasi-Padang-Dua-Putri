@@ -398,135 +398,187 @@
         </div>
     </div>
 
-    {{-- MODAL 1: TAMBAH / EDIT PESANAN KATERING --}}
-    <div id="orderModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
-            <div class="flex items-center justify-between pb-3 border-b border-stone-200 mb-4">
-                <h3 id="orderModalTitle" class="font-serif-title font-bold text-xl text-[#8B1E1E]">Catat Pesanan Katering</h3>
-                <button type="button" onclick="closeModal('orderModal')" class="text-stone-400 hover:text-stone-700 text-2xl font-bold">&times;</button>
+    {{-- MODAL 1: FORMULIR INPUT PESANAN & KALKULATOR INSTAN --}}
+    <div id="orderModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="relative bg-white rounded-3xl border-2 border-[#E5C158] max-w-lg w-full max-h-[94vh] overflow-y-auto p-5 sm:p-6 shadow-2xl my-auto">
+            {{-- Tombol Tutup X di Pojok Kanan Atas --}}
+            <button type="button" onclick="closeModal('orderModal')" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-2xl font-bold leading-none p-1 z-10">&times;</button>
+
+            {{-- Header Form Sesuai Desain Referensi --}}
+            <div class="text-center mb-3 pt-1">
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <span class="h-px w-6 bg-[#D49826]/60"></span>
+                    <span class="text-[10px] font-extrabold tracking-widest text-[#D49826] uppercase">◆ BUKU CATATAN INTERNAL PEMILIK ◆</span>
+                    <span class="h-px w-6 bg-[#D49826]/60"></span>
+                </div>
+                <h3 id="orderModalTitle" class="font-serif-title font-bold text-xl sm:text-2xl text-[#8B1E1E] leading-tight uppercase">
+                    Formulir Input Pesanan &amp;<br>Kalkulator Instan
+                </h3>
+                <p class="text-[11px] text-stone-500 mt-1">
+                    Buku Catatan Digital Internal (Manual / Telpon / Tamu Datang Langsung)
+                </p>
             </div>
 
-            <form id="orderForm" action="{{ route('katering.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+            {{-- Banner Notice Amber --}}
+            <div class="mb-4 p-2.5 rounded-xl bg-[#FFFBF0] border border-[#F3E2B8] text-center text-xs font-semibold text-[#8B5E14] flex items-center justify-center gap-2">
+                <span class="text-[#D49826] text-xs">🔲</span>
+                <span class="leading-snug">Hitung otomatis porsi, ongkir, serta bonus promo gratis tanpa WhatsApp &amp; tanpa bot.</span>
+            </div>
+
+            <form id="orderForm" action="{{ route('katering.store') }}" method="POST" enctype="multipart/form-data" class="space-y-3.5 text-xs">
                 @csrf
                 <input type="hidden" name="_method" id="orderFormMethod" value="POST">
+                <input type="hidden" name="total_boks_bonus" id="f_total_boks_bonus" value="0">
+                <input type="hidden" name="harga_satuan" id="f_harga_satuan" value="27500">
+                <input type="hidden" name="total_tagihan" id="f_total_tagihan" value="2240000">
+                <input type="hidden" name="metode_antar" id="f_metode_antar" value="Diantar">
+                <input type="hidden" name="metode_bayar" id="f_metode_bayar" value="cod">
 
+                {{-- Row 1: Nama Pemesan & No. Kontak Arsip Internal --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">Nama Pemesan *</label>
+                        <label class="block font-bold text-stone-800 mb-1 text-xs">Nama Pemesan / Instansi</label>
                         <input type="text" name="nama_pemesan" id="f_nama_pemesan" required placeholder="Bpk. Hendra"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-xs text-stone-800 focus:border-red-800 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">No. WhatsApp</label>
-                        <input type="text" name="no_whatsapp" id="f_no_whatsapp" placeholder="0812xxxxxxxx"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                        <label class="block font-bold text-stone-800 mb-1 text-xs">No. Kontak Arsip Internal</label>
+                        <input type="text" name="no_whatsapp" id="f_no_whatsapp" placeholder="0812-8877-6655"
+                            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-xs text-stone-800 focus:border-red-800 focus:outline-none">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block font-bold text-stone-700 mb-1">Nama Paket Katering *</label>
-                    <input type="text" name="nama_paket" id="f_nama_paket" required placeholder="Paket Nasi Rendang Komplit"
-                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Jumlah Boks *</label>
-                        <input type="number" name="total_boks_pesan" id="f_total_boks_pesan" required min="1" value="50" oninput="hitungTotal()"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Boks Bonus</label>
-                        <input type="number" name="total_boks_bonus" id="f_total_boks_bonus" min="0" value="0"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Harga/Boks *</label>
-                        <input type="number" name="harga_satuan" id="f_harga_satuan" min="0" value="27500" oninput="hitungTotal()"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                    </div>
-                </div>
-
+                {{-- Row 2: Tanggal Pengantaran & Jam Sampai --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">Tanggal Kirim *</label>
+                        <label class="block font-bold text-stone-800 mb-1 text-xs">Tanggal Pengantaran</label>
                         <input type="date" name="tanggal_kirim" id="f_tanggal_kirim" required
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-xs text-stone-800 focus:border-red-800 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">Jam Kirim *</label>
+                        <label class="block font-bold text-stone-800 mb-1 text-xs">Jam Makanan Harus Sampai</label>
                         <input type="time" name="jam_kirim" id="f_jam_kirim" required
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-xs text-stone-800 focus:border-red-800 focus:outline-none">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Metode Antar *</label>
-                        <input type="text" name="metode_antar" id="f_metode_antar" required value="Diantar"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Info Kurir &amp; Plat Kendaraan</label>
-                        <input type="text" name="info_kurir" id="f_info_kurir" placeholder="Kang Asep Pick-up Box (Plat B 4812 FOO)"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                    </div>
-                </div>
-
+                {{-- Row 3: Metode Pengantaran Segmented Toggle --}}
                 <div>
-                    <label class="block font-bold text-stone-700 mb-1">Alamat Pengantaran *</label>
-                    <textarea name="alamat_pengiriman" id="f_alamat_pengiriman" rows="2" required placeholder="Alamat lengkap lokasi pengantaran acara..."
-                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none"></textarea>
+                    <label class="block font-bold text-stone-800 mb-1 text-xs">Metode Pengantaran</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btn_metode_diantar" onclick="pilihMetodeAntar('Diantar')"
+                            class="py-2.5 px-3 rounded-xl border-2 border-[#8B1E1E] bg-[#FFF5F5] text-[#8B1E1E] font-bold text-xs text-center transition shadow-xs">
+                            Diantar
+                        </button>
+                        <button type="button" id="btn_metode_diambil" onclick="pilihMetodeAntar('Diambil')"
+                            class="py-2.5 px-3 rounded-xl border border-stone-300 bg-white text-stone-600 font-medium text-xs text-center hover:bg-stone-50 transition">
+                            Diambil
+                        </button>
+                    </div>
                 </div>
 
+                {{-- Row 4: Alamat Lengkap Pengiriman --}}
                 <div>
-                    <label class="block font-bold text-stone-700 mb-1">Instruksi Khusus Dapur</label>
-                    <textarea name="catatan_dapur" id="f_catatan_dapur" rows="2" placeholder="Catatan tingkat pedas, sambal dipisah per bungkus, sendok, tanpa jengkol..."
-                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none"></textarea>
+                    <label class="block font-bold text-stone-800 mb-1 text-xs">Alamat Lengkap Pengiriman</label>
+                    <textarea name="alamat_pengiriman" id="f_alamat_pengiriman" rows="2" placeholder="Kantor Bapenda, Jl. Pemda No. 12"
+                        class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-xs text-stone-800 focus:border-red-800 focus:outline-none"></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {{-- Row 5: Catatan Khusus Dapur (Sambal, Alergi, Bumbu) --}}
+                <div>
+                    <label class="block font-bold text-stone-800 mb-1 text-xs">Catatan Khusus Dapur (Sambal, Alergi, Bumbu)</label>
+                    <textarea name="catatan_dapur" id="f_catatan_dapur" rows="2" placeholder="Minta sambal ijo dipisah per bungkus & sendok plastik steril, tanpa jengkol, nota rangkap 2."
+                        class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-xs text-stone-800 focus:border-red-800 focus:outline-none"></textarea>
+                </div>
+
+                {{-- Row 6: Pilihan Paket Menu --}}
+                <div>
+                    <label class="block font-bold text-stone-800 mb-1 text-xs">Pilihan Paket Menu</label>
+                    <select name="nama_paket" id="f_nama_paket" onchange="onPaketChange()"
+                        class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-xs text-stone-800 focus:border-red-800 focus:outline-none bg-white">
+                        <option value="Paket Nasi Rendang Komplit" data-price="27500">Paket Nasi Rendang Komplit - Rp 27.500 / boks</option>
+                        <option value="Paket Nasi Ayam Pop & Gulai Tunjang" data-price="28000">Paket Nasi Ayam Pop &amp; Gulai Tunjang - Rp 28.000 / boks</option>
+                        <option value="Paket Nasi Gulai Kakap Super" data-price="45000">Paket Nasi Gulai Kakap Super - Rp 45.000 / boks</option>
+                        <option value="Paket Nasi Ayam Gulai / Bakar" data-price="25000">Paket Nasi Ayam Gulai / Bakar - Rp 25.000 / boks</option>
+                        <option value="Paket Nasi Dendeng Batokok" data-price="27500">Paket Nasi Dendeng Batokok - Rp 27.500 / boks</option>
+                        <option value="Paket Nasi Padang Hemat" data-price="22000">Paket Nasi Padang Hemat - Rp 22.000 / boks</option>
+                    </select>
+                </div>
+
+                {{-- Row 7: 3 Kolom (Jumlah Porsi, Ongkos Kirim, Uang Muka / DP) --}}
+                <div class="grid grid-cols-3 gap-2 sm:gap-3">
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">Ongkir (Rp)</label>
-                        <input type="number" name="ongkos_kirim" id="f_ongkos_kirim" min="0" value="0" oninput="hitungTotal()"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                        <label class="block font-bold text-stone-800 mb-1 text-[11px] leading-tight">Jumlah Porsi (Boks)</label>
+                        <input type="number" name="total_boks_pesan" id="f_total_boks_pesan" required min="1" value="80" oninput="kalkulasiOtomatis()"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm font-extrabold text-[#8B1E1E] focus:border-red-800 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">Total Tagihan *</label>
-                        <input type="number" name="total_tagihan" id="f_total_tagihan" required min="0" value="1375000"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none font-bold text-stone-800">
+                        <label class="block font-bold text-stone-800 mb-1 text-[11px] leading-tight">Ongkos Kirim (Rp)</label>
+                        <input type="number" name="ongkos_kirim" id="f_ongkos_kirim" min="0" value="40000" oninput="kalkulasiOtomatis()"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm font-bold text-stone-800 focus:border-red-800 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block font-bold text-stone-700 mb-1">DP Masuk (Rp)</label>
-                        <input type="number" name="nominal_dp" id="f_nominal_dp" min="0" value="0"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
+                        <label class="block font-bold text-stone-800 mb-1 text-[11px] leading-tight">Uang Muka / DP (Rp)</label>
+                        <input type="number" name="nominal_dp" id="f_nominal_dp" min="0" value="1000000" oninput="kalkulasiOtomatis()"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm font-extrabold text-emerald-700 focus:border-red-800 focus:outline-none">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Metode Bayar *</label>
-                        <select name="metode_bayar" id="f_metode_bayar"
-                            class="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs focus:border-red-800 focus:outline-none">
-                            <option value="transfer">Transfer Bank</option>
-                            <option value="cod">COD (Bayar Saat Antar)</option>
-                        </select>
+                {{-- RINGKASAN HITUNG OTOMATIS INTERNAL --}}
+                <section class="rounded-2xl border border-[#F3E2B8] bg-[#FFFDF9] p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold tracking-wide uppercase text-stone-800">Ringkasan Hitung Otomatis Internal</span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Hitung Aktif</span>
                     </div>
-                    <div>
-                        <label class="block font-bold text-stone-700 mb-1">Bukti Bayar (Opsional)</label>
-                        <input type="file" name="bukti_bayar" accept=".jpg,.jpeg,.png,.pdf"
-                            class="w-full text-xs text-stone-600 file:mr-2 file:py-1.5 file:px-2.5 file:rounded-lg file:border-0 file:bg-stone-100 file:font-semibold">
-                    </div>
-                </div>
 
-                <div class="pt-4 border-t border-stone-200 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('orderModal')"
-                        class="px-5 py-2.5 rounded-lg border border-stone-300 font-bold text-stone-700 hover:bg-stone-50 transition">
-                        Batal
-                    </button>
+                    {{-- Box Bonus Katering --}}
+                    <div id="box_bonus_katering" class="rounded-xl border border-amber-200 bg-[#FFF7E8] p-3 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-amber-900">Bonus Katering:</span>
+                            <span id="label_bonus_boks" class="font-extrabold text-emerald-700 text-xs">+2 Boks Gratis</span>
+                        </div>
+                        <div id="desc_bonus_katering" class="text-[11px] text-stone-600 mt-1">
+                            (Porsi &gt;= 50 boks: Total Fisik <strong id="calc_total_fisik" class="text-stone-800">82 Boks</strong>, Tagihan Dihitung: <strong id="calc_total_tagih" class="text-stone-800">80 Boks</strong>)
+                        </div>
+                    </div>
+
+                    {{-- Rincian Biaya --}}
+                    <div class="space-y-1.5 text-xs text-stone-700 pt-1">
+                        <div class="flex justify-between items-center">
+                            <span>Subtotal Paket (<span id="calc_porsi_label">80 Boks x Rp 27.500</span>):</span>
+                            <span id="calc_subtotal" class="font-bold text-stone-900">Rp 2.200.000</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>Ongkos Kirim Kurir:</span>
+                            <span id="calc_ongkir" class="font-bold text-stone-900">Rp 40.000</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1 border-t border-amber-200/80">
+                            <span class="font-extrabold text-stone-900">Total Tagihan Keseluruhan:</span>
+                            <span id="calc_total_tagihan" class="font-serif-title font-bold text-lg text-[#8B1E1E]">Rp 2.240.000</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-stone-600">Uang Muka Masuk (DP Diterima):</span>
+                            <span id="calc_dp" class="font-bold text-emerald-700">- Rp 1.000.000</span>
+                        </div>
+                    </div>
+
+                    {{-- Box Sisa Pelunasan (COD) --}}
+                    <div class="border-2 border-amber-300 bg-white rounded-xl p-3 flex items-center justify-between shadow-xs">
+                        <div>
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-stone-500">Sisa Pelunasan (COD)</div>
+                            <div class="text-xs font-bold text-stone-800 mt-0.5">Wajib Tagih Saat Pengantaran</div>
+                        </div>
+                        <div id="calc_sisa_tagihan" class="text-xl sm:text-2xl font-black text-[#D97706] tracking-tight">
+                            Rp 1.240.000
+                        </div>
+                    </div>
+                </section>
+
+                {{-- Tombol Simpan --}}
+                <div class="pt-2">
                     <button type="submit"
-                        class="px-6 py-2.5 rounded-lg bg-[#8B1E1E] hover:bg-[#701616] text-white font-bold transition shadow-sm">
-                        Simpan Pesanan
+                        class="w-full py-3.5 px-4 rounded-xl bg-[#8B1E1E] hover:bg-[#701616] active:scale-[0.99] text-white font-bold text-sm shadow-md transition text-center">
+                        Simpan
                     </button>
                 </div>
             </form>
@@ -588,11 +640,8 @@
     </div>
 
     <script>
-        function hitungTotal() {
-            const boks = parseInt(document.getElementById('f_total_boks_pesan').value) || 0;
-            const harga = parseInt(document.getElementById('f_harga_satuan').value) || 0;
-            const ongkir = parseInt(document.getElementById('f_ongkos_kirim').value) || 0;
-            document.getElementById('f_total_tagihan').value = (boks * harga) + ongkir;
+        function formatRupiah(num) {
+            return 'Rp ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
 
         function openModal(id) {
@@ -607,37 +656,134 @@
             el.classList.remove('flex');
         }
 
+        function pilihMetodeAntar(metode) {
+            document.getElementById('f_metode_antar').value = metode;
+            const btnDiantar = document.getElementById('btn_metode_diantar');
+            const btnDiambil = document.getElementById('btn_metode_diambil');
+            const ongkirInput = document.getElementById('f_ongkos_kirim');
+
+            if (metode === 'Diantar') {
+                btnDiantar.className = 'py-2.5 px-3 rounded-xl border-2 border-[#8B1E1E] bg-[#FFF5F5] text-[#8B1E1E] font-bold text-xs text-center transition shadow-xs';
+                btnDiambil.className = 'py-2.5 px-3 rounded-xl border border-stone-300 bg-white text-stone-600 font-medium text-xs text-center hover:bg-stone-50 transition';
+                if (parseInt(ongkirInput.value) === 0) {
+                    ongkirInput.value = 40000;
+                }
+            } else {
+                btnDiambil.className = 'py-2.5 px-3 rounded-xl border-2 border-[#8B1E1E] bg-[#FFF5F5] text-[#8B1E1E] font-bold text-xs text-center transition shadow-xs';
+                btnDiantar.className = 'py-2.5 px-3 rounded-xl border border-stone-300 bg-white text-stone-600 font-medium text-xs text-center hover:bg-stone-50 transition';
+                ongkirInput.value = 0;
+            }
+            kalkulasiOtomatis();
+        }
+
+        function onPaketChange() {
+            const select = document.getElementById('f_nama_paket');
+            const selectedOption = select.options[select.selectedIndex];
+            const price = parseInt(selectedOption.getAttribute('data-price')) || 27500;
+            document.getElementById('f_harga_satuan').value = price;
+            kalkulasiOtomatis();
+        }
+
+        function kalkulasiOtomatis() {
+            const porsi = Math.max(1, parseInt(document.getElementById('f_total_boks_pesan').value) || 0);
+            const harga = parseInt(document.getElementById('f_harga_satuan').value) || 27500;
+            const ongkir = parseInt(document.getElementById('f_ongkos_kirim').value) || 0;
+            const dp = Math.max(0, parseInt(document.getElementById('f_nominal_dp').value) || 0);
+
+            // Hitung Bonus Box Promo
+            let bonus = 0;
+            if (porsi >= 50) {
+                bonus = 2;
+            } else if (porsi >= 20) {
+                bonus = 1;
+            }
+            document.getElementById('f_total_boks_bonus').value = bonus;
+
+            // Tampilan Box Bonus
+            const totalFisik = porsi + bonus;
+            document.getElementById('label_bonus_boks').innerText = bonus > 0 ? `+${bonus} Boks Gratis` : '0 Boks';
+            if (bonus > 0) {
+                document.getElementById('desc_bonus_katering').innerHTML = `(Porsi &gt;= ${porsi >= 50 ? 50 : 20} boks: Total Fisik <strong class="text-stone-800">${totalFisik} Boks</strong>, Tagihan Dihitung: <strong class="text-stone-800">${porsi} Boks</strong>)`;
+            } else {
+                document.getElementById('desc_bonus_katering').innerHTML = `(Total Fisik <strong class="text-stone-800">${totalFisik} Boks</strong> &bull; Min. 20 boks untuk dapat bonus gratis)`;
+            }
+
+            // Subtotal & Tagihan
+            const subtotal = porsi * harga;
+            const totalTagihan = subtotal + ongkir;
+            const sisaTagihan = Math.max(0, totalTagihan - dp);
+
+            document.getElementById('f_total_tagihan').value = totalTagihan;
+
+            // Update label breakdown
+            document.getElementById('calc_porsi_label').innerText = `${porsi} Boks x ${formatRupiah(harga)}`;
+            document.getElementById('calc_subtotal').innerText = formatRupiah(subtotal);
+            document.getElementById('calc_ongkir').innerText = formatRupiah(ongkir);
+            document.getElementById('calc_total_tagihan').innerText = formatRupiah(totalTagihan);
+            document.getElementById('calc_dp').innerText = `- ${formatRupiah(dp)}`;
+            document.getElementById('calc_sisa_tagihan').innerText = formatRupiah(sisaTagihan);
+        }
+
         function openCreateModal() {
-            document.getElementById('orderModalTitle').innerText = 'Catat Pesanan Katering';
+            document.getElementById('orderModalTitle').innerHTML = 'Formulir Input Pesanan &amp;<br>Kalkulator Instan';
             document.getElementById('orderForm').action = "{{ route('katering.store') }}";
             document.getElementById('orderFormMethod').value = 'POST';
             document.getElementById('orderForm').reset();
-            hitungTotal();
+
+            // Default values persis sesuai desain referensi:
+            document.getElementById('f_nama_pemesan').value = 'Bpk. Hendra';
+            document.getElementById('f_no_whatsapp').value = '0812-8877-6655';
+            document.getElementById('f_tanggal_kirim').value = "{{ today()->format('Y-m-d') }}";
+            document.getElementById('f_jam_kirim').value = '11:30';
+            document.getElementById('f_alamat_pengiriman').value = 'Kantor Bapenda, Jl. Pemda No. 12';
+            document.getElementById('f_catatan_dapur').value = 'Minta sambal ijo dipisah per bungkus & sendok plastik steril, tanpa jengkol, nota rangkap 2.';
+            document.getElementById('f_nama_paket').value = 'Paket Nasi Rendang Komplit';
+            document.getElementById('f_harga_satuan').value = 27500;
+            document.getElementById('f_total_boks_pesan').value = 80;
+            document.getElementById('f_ongkos_kirim').value = 40000;
+            document.getElementById('f_nominal_dp').value = 1000000;
+
+            pilihMetodeAntar('Diantar');
+            kalkulasiOtomatis();
             openModal('orderModal');
         }
 
         function openEditModal(order) {
-            document.getElementById('orderModalTitle').innerText = 'Edit Pesanan ' + order.nomor_pesanan;
+            document.getElementById('orderModalTitle').innerHTML = 'Edit Pesanan ' + order.nomor_pesanan + ' &amp;<br>Kalkulator Instan';
             document.getElementById('orderForm').action = '/katering/' + order.id_katering;
             document.getElementById('orderFormMethod').value = 'PUT';
 
             document.getElementById('f_nama_pemesan').value = order.nama_pemesan || '';
             document.getElementById('f_no_whatsapp').value = order.no_whatsapp || '';
-            document.getElementById('f_nama_paket').value = order.nama_paket || '';
-            document.getElementById('f_total_boks_pesan').value = order.total_boks_pesan || 1;
-            document.getElementById('f_total_boks_bonus').value = order.total_boks_bonus || 0;
-            document.getElementById('f_harga_satuan').value = parseInt(order.harga_satuan || 0);
             document.getElementById('f_tanggal_kirim').value = order.tanggal_kirim ? order.tanggal_kirim.slice(0, 10) : '';
             document.getElementById('f_jam_kirim').value = order.jam_kirim ? order.jam_kirim.slice(0, 5) : '';
-            document.getElementById('f_metode_antar').value = order.metode_antar || 'Diantar';
             document.getElementById('f_alamat_pengiriman').value = order.alamat_pengiriman || '';
-            document.getElementById('f_info_kurir').value = order.info_kurir || '';
             document.getElementById('f_catatan_dapur').value = order.catatan_dapur || '';
-            document.getElementById('f_ongkos_kirim').value = parseInt(order.ongkos_kirim || 0);
-            document.getElementById('f_total_tagihan').value = parseInt(order.total_tagihan || 0);
-            document.getElementById('f_nominal_dp').value = parseInt(order.nominal_dp || 0);
-            document.getElementById('f_metode_bayar').value = order.metode_bayar || 'transfer';
 
+            // Cari opsi paket yang cocok
+            const paketSelect = document.getElementById('f_nama_paket');
+            let matched = false;
+            for (let i = 0; i < paketSelect.options.length; i++) {
+                if (paketSelect.options[i].value === order.nama_paket) {
+                    paketSelect.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched && order.nama_paket) {
+                const newOpt = new Option(order.nama_paket + ' - Custom', order.nama_paket);
+                newOpt.setAttribute('data-price', order.harga_satuan || 27500);
+                paketSelect.add(newOpt);
+                paketSelect.value = order.nama_paket;
+            }
+
+            document.getElementById('f_harga_satuan').value = parseInt(order.harga_satuan || 27500);
+            document.getElementById('f_total_boks_pesan').value = order.total_boks_pesan || 1;
+            document.getElementById('f_ongkos_kirim').value = parseInt(order.ongkos_kirim || 0);
+            document.getElementById('f_nominal_dp').value = parseInt(order.nominal_dp || 0);
+
+            pilihMetodeAntar(order.metode_antar || 'Diantar');
+            kalkulasiOtomatis();
             openModal('orderModal');
         }
 

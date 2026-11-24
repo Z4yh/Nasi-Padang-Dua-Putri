@@ -161,15 +161,23 @@ class KateringController extends Controller
             'ongkos_kirim' => 'nullable|numeric|min:0',
             'tanggal_kirim' => 'required|date',
             'jam_kirim' => 'required',
-            'alamat_pengiriman' => 'required|string',
+            'alamat_pengiriman' => 'nullable|string',
             'metode_antar' => 'required|string|max:100',
             'info_kurir' => 'nullable|string|max:255',
             'catatan_dapur' => 'nullable|string',
             'total_tagihan' => 'required|numeric|min:0',
             'nominal_dp' => 'nullable|numeric|min:0',
-            'metode_bayar' => 'required|in:transfer,cod',
+            'metode_bayar' => 'nullable|in:transfer,cod',
             'bukti_bayar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
+
+        $metodeAntar = $validated['metode_antar'] ?? 'Diantar';
+        $alamat = !empty($validated['alamat_pengiriman'])
+            ? $validated['alamat_pengiriman']
+            : ($metodeAntar === 'Diambil' ? 'Ambil Langsung di Rumah Makan Padang Tiga Putri' : '-');
+        $metodeBayar = !empty($validated['metode_bayar'])
+            ? $validated['metode_bayar']
+            : 'cod';
 
         $totalTagihan = (float) $validated['total_tagihan'];
         $nominalDp = (float) ($validated['nominal_dp'] ?? 0);
@@ -202,13 +210,13 @@ class KateringController extends Controller
 
         $optionalCols = [
             'nama_paket' => $validated['nama_paket'],
-            'alamat_pengiriman' => $validated['alamat_pengiriman'],
-            'metode_antar' => $validated['metode_antar'],
+            'alamat_pengiriman' => $alamat,
+            'metode_antar' => $metodeAntar,
             'info_kurir' => $validated['info_kurir'] ?? null,
             'catatan_dapur' => $validated['catatan_dapur'] ?? null,
             'harga_satuan' => $validated['harga_satuan'] ?? 0,
             'ongkos_kirim' => $validated['ongkos_kirim'] ?? 0,
-            'metode_bayar' => $validated['metode_bayar'],
+            'metode_bayar' => $metodeBayar,
         ];
 
         foreach ($optionalCols as $col => $val) {
@@ -235,15 +243,23 @@ class KateringController extends Controller
             'ongkos_kirim' => 'nullable|numeric|min:0',
             'tanggal_kirim' => 'required|date',
             'jam_kirim' => 'required',
-            'alamat_pengiriman' => 'required|string',
+            'alamat_pengiriman' => 'nullable|string',
             'metode_antar' => 'required|string|max:100',
             'info_kurir' => 'nullable|string|max:255',
             'catatan_dapur' => 'nullable|string',
             'total_tagihan' => 'required|numeric|min:0',
             'nominal_dp' => 'nullable|numeric|min:0',
-            'metode_bayar' => 'required|in:transfer,cod',
+            'metode_bayar' => 'nullable|in:transfer,cod',
             'bukti_bayar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
+
+        $metodeAntar = $validated['metode_antar'] ?? 'Diantar';
+        $alamat = !empty($validated['alamat_pengiriman'])
+            ? $validated['alamat_pengiriman']
+            : ($metodeAntar === 'Diambil' ? 'Ambil Langsung di Rumah Makan Padang Tiga Putri' : '-');
+        $metodeBayar = !empty($validated['metode_bayar'])
+            ? $validated['metode_bayar']
+            : 'cod';
 
         $totalTagihan = (float) $validated['total_tagihan'];
         $nominalDp = (float) ($validated['nominal_dp'] ?? 0);
@@ -268,13 +284,13 @@ class KateringController extends Controller
 
         $optionalCols = [
             'nama_paket' => $validated['nama_paket'],
-            'alamat_pengiriman' => $validated['alamat_pengiriman'],
-            'metode_antar' => $validated['metode_antar'],
+            'alamat_pengiriman' => $alamat,
+            'metode_antar' => $metodeAntar,
             'info_kurir' => $validated['info_kurir'] ?? null,
             'catatan_dapur' => $validated['catatan_dapur'] ?? null,
             'harga_satuan' => $validated['harga_satuan'] ?? 0,
             'ongkos_kirim' => $validated['ongkos_kirim'] ?? 0,
-            'metode_bayar' => $validated['metode_bayar'],
+            'metode_bayar' => $metodeBayar,
         ];
 
         foreach ($optionalCols as $col => $val) {
