@@ -7,6 +7,7 @@ use App\Models\KateringOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -35,7 +36,7 @@ class KateringController extends Controller
                     'nominal_dp' => 1000000,
                     'sisa_tagihan' => 1240000,
                     'metode_bayar' => 'transfer',
-                    'status_pesanan' => 'sedang_dimasak',
+                    'status_pesanan' => 'diproses',
                 ]),
                 new KateringOrder([
                     'id_katering' => 2,
@@ -72,7 +73,7 @@ class KateringController extends Controller
                     'nominal_dp' => 1800000,
                     'sisa_tagihan' => 0,
                     'metode_bayar' => 'transfer',
-                    'status_pesanan' => 'sedang_diantar',
+                    'status_pesanan' => 'siap_kirim',
                 ]),
                 new KateringOrder([
                     'id_katering' => 4,
@@ -174,7 +175,7 @@ class KateringController extends Controller
         $totalTagihan = (float) $validated['total_tagihan'];
         $nominalDp = (float) ($validated['nominal_dp'] ?? 0);
         $sisaTagihan = max(0, $totalTagihan - $nominalDp);
-        $statusPesanan = $nominalDp > 0 ? 'sedang_dimasak' : 'menunggu_dp';
+        $statusPesanan = $nominalDp > 0 ? 'diproses' : 'menunggu_dp';
 
         $lastCode = KateringOrder::orderByDesc('id_katering')->value('nomor_pesanan');
         $lastNumber = $lastCode ? (int) preg_replace('/\D/', '', $lastCode) : 83;
@@ -291,15 +292,36 @@ class KateringController extends Controller
 
     public function updateStatus(Request $request, KateringOrder $kateringOrder): RedirectResponse
     {
+        // 1. Otorisasi: Hanya Kasir (penjual) dan Pemilik (super_admin) yang boleh mengubah status
+        $user = auth()->user();
+        if (! $user || (! $user->isPenjual() && ! $user->isSuperAdmin())) {
+            abort(403, 'Akses ditolak. Hanya Kasir dan Pemilik yang dapat mengubah status pesanan.');
+        }
+
+        // 2. Ambil daftar status yang diizinkan dari model KateringOrder
+        $allowedStatuses = $kateringOrder->statusBerikutnya();
+
+        // Jika status sudah terkunci (selesai / dibatalkan)
+        if (empty($allowedStatuses)) {
+            return back()->with('error', "Pesanan {$kateringOrder->nomor_pesanan} sudah berstatus '{$kateringOrder->status_pesanan}' dan tidak dapat diubah lagi.");
+        }
+
+        // 3. Validasi status_pesanan menggunakan daftar status yang diizinkan oleh model
         $validated = $request->validate([
-            'status_pesanan' => 'required|in:menunggu_dp,sedang_dimasak,sedang_diantar,selesai',
+            'status_pesanan' => ['required', 'string', Rule::in($allowedStatuses)],
+        ], [
+            'status_pesanan.in' => "Perubahan status ke opsi yang dipilih tidak diizinkan untuk pesanan {$kateringOrder->nomor_pesanan}.",
         ]);
 
+        // 4. Update status pesanan di database
         $kateringOrder->update([
             'status_pesanan' => $validated['status_pesanan'],
         ]);
 
-        return back()->with('success', "Status {$kateringOrder->nomor_pesanan} diperbarui.");
+        $daftarLabel = KateringOrder::daftarLabelStatus();
+        $labelBaru = $daftarLabel[$validated['status_pesanan']] ?? $validated['status_pesanan'];
+
+        return back()->with('success', "Status pesanan {$kateringOrder->nomor_pesanan} berhasil diubah menjadi {$labelBaru}.");
     }
 
     public function confirmPayment(Request $request, KateringOrder $kateringOrder): RedirectResponse
@@ -324,7 +346,7 @@ class KateringController extends Controller
         $updateData = [
             'nominal_dp' => $nominalDp,
             'sisa_tagihan' => $sisaTagihan,
-            'status_pesanan' => $kateringOrder->status_pesanan === 'menunggu_dp' ? 'sedang_dimasak' : $kateringOrder->status_pesanan,
+            'status_pesanan' => $kateringOrder->status_pesanan === 'menunggu_dp' ? 'diproses' : $kateringOrder->status_pesanan,
         ];
 
         if (Schema::hasColumn('tigaputri_md_katering_order', 'metode_bayar')) {
@@ -338,6 +360,11 @@ class KateringController extends Controller
 
     public function markCompleted(Request $request, KateringOrder $kateringOrder): RedirectResponse
     {
+        // Validasi urutan alur: pesanan hanya boleh diselesaikan jika diizinkan oleh model (dari siap_kirim)
+        if (! $kateringOrder->bisaUbahKeStatus('selesai')) {
+            return back()->with('error', "Pesanan {$kateringOrder->nomor_pesanan} belum dapat diselesaikan karena status saat ini bukan 'Siap Kirim'.");
+        }
+
         $validated = $request->validate([
             'bukti_selesai' => 'required|string|max:500',
         ]);
