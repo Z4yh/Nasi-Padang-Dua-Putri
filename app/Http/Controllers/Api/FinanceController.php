@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Models\Expense;
+use App\Services\Keuangan\CashFlowCalculator;
 use App\Services\Keuangan\CashFlowPeriodHelper;
 use App\Services\Keuangan\CashFlowService;
 use Carbon\Carbon;
@@ -13,6 +14,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceController extends Controller
 {
@@ -177,5 +180,133 @@ class FinanceController extends Controller
         $expense->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * GET /api/finance/export
+     * Ekspor laporan arus kas ke format PDF atau Excel CSV.
+     */
+    public function export(Request $request): StreamedResponse|View|JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'format' => ['required', 'string', 'in:pdf,csv'],
+            'period' => ['nullable', 'string', 'in:day,week,month,year'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'type' => ['nullable', 'string', 'in:all,in,out'],
+        ], [
+            'format.required' => 'Format ekspor wajib dipilih (pdf atau csv).',
+            'format.in' => 'Format ekspor harus berupa pdf atau csv.',
+            'period.in' => 'Periode harus salah satu dari: day, week, month, year.',
+            'date.date_format' => 'Format tanggal harus YYYY-MM-DD.',
+            'type.in' => 'Tipe entri harus salah satu dari: all, in, out.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Parameter permintaan tidak valid.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $format = $request->query('format');
+        $period = $request->query('period', 'day');
+        $date = $request->query('date');
+        $type = $request->query('type', 'all');
+
+        $range = CashFlowPeriodHelper::getPeriodRange($period, $date);
+        $dateString = $range['start']->format('Ymd');
+        $typeFilter = ($type === 'all') ? null : $type;
+
+        $entries = $this->cashFlowService->getEntries($range['start'], $range['end'], $typeFilter);
+        $summary = $this->cashFlowService->getFinanceSummary($period, $date);
+
+        if ($format === 'csv') {
+            $filename = "laporan-arus-kas_{$period}_{$dateString}.csv";
+
+            return response()->streamDownload(function () use ($entries) {
+                $handle = fopen('php://output', 'w');
+                // UTF-8 BOM untuk Microsoft Excel
+                fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+                fputcsv($handle, [
+                    'Tanggal',
+                    'Jam',
+                    'Jenis',
+                    'Sumber',
+                    'Kategori',
+                    'Keterangan',
+                    'Metode / Sumber Dana',
+                    'Nominal',
+                    'Referensi',
+                ]);
+
+                if ($entries->isEmpty()) {
+                    fputcsv($handle, [
+                        '-',
+                        '-',
+                        '-',
+                        '-',
+                        '-',
+                        'Tidak ada transaksi',
+                        '-',
+                        0,
+                        '-',
+                    ]);
+                } else {
+                    foreach ($entries as $item) {
+                        $occurredAt = $item['occurred_at'];
+                        $categoryLabel = $item['category'] ? CashFlowCalculator::getCategoryLabel($item['category']) : '-';
+                        $typeLabel = $item['type'] === 'in' ? 'Masuk' : 'Keluar';
+                        $sourceLabel = match ($item['source']) {
+                            'pos' => 'Kasir POS',
+                            'catering' => 'Katering',
+                            'expense' => 'Pengeluaran',
+                            default => ucfirst($item['source']),
+                        };
+
+                        $subtitle = $item['subtitle'] ? ' (' . $item['subtitle'] . ')' : '';
+
+                        fputcsv($handle, [
+                            $this->sanitizeCsvCell($occurredAt->format('Y-m-d')),
+                            $this->sanitizeCsvCell($occurredAt->format('H:i')),
+                            $this->sanitizeCsvCell($typeLabel),
+                            $this->sanitizeCsvCell($sourceLabel),
+                            $this->sanitizeCsvCell($categoryLabel),
+                            $this->sanitizeCsvCell($item['title'] . $subtitle),
+                            $this->sanitizeCsvCell(strtoupper($item['method'])),
+                            (int) $item['amount'],
+                            $this->sanitizeCsvCell((string) $item['ref_id']),
+                        ]);
+                    }
+                }
+
+                fclose($handle);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        // Format PDF -> Tampilan cetak A4 teroptimasi print-to-PDF
+        return view('keuangan.pdf', [
+            'summary' => $summary,
+            'entries' => $entries,
+            'period' => $period,
+            'range' => $range,
+            'type' => $type,
+            'printedAt' => Carbon::now(CashFlowPeriodHelper::TIMEZONE),
+        ]);
+    }
+
+    /**
+     * Perlindungan dari CSV Injection:
+     * Awali nilai yang diawali tanda =, +, -, atau @ dengan tanda petik tunggal aman.
+     */
+    protected function sanitizeCsvCell(mixed $val): string
+    {
+        $str = (string) $val;
+        if ($str !== '' && in_array($str[0], ['=', '+', '-', '@'], true)) {
+            return "'" . $str;
+        }
+        return $str;
     }
 }

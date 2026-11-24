@@ -113,6 +113,8 @@ class CashFlowService
                 'occurred_at' => $item['occurred_at']->toIso8601String(),
                 'ref_id' => $item['ref_id'],
                 'editable' => (bool) $item['editable'],
+                'note' => $item['note'] ?? null,
+                'fund_source' => $item['fund_source'] ?? null,
             ];
         })->values()->all();
 
@@ -355,6 +357,8 @@ class CashFlowService
                 'occurred_at' => Carbon::parse($exp->occurred_at)->setTimezone(CashFlowPeriodHelper::TIMEZONE),
                 'ref_id' => $exp->id,
                 'editable' => true,
+                'note' => $exp->note,
+                'fund_source' => $exp->fund_source,
             ];
         });
     }

@@ -19,6 +19,7 @@ Route::prefix('api/finance')
     ->group(function () {
         Route::get('/summary', [FinanceController::class, 'summary'])->name('summary');
         Route::get('/entries', [FinanceController::class, 'entries'])->name('entries');
+        Route::get('/export', [FinanceController::class, 'export'])->name('export');
         Route::post('/expenses', [FinanceController::class, 'storeExpense'])->name('expenses.store');
         Route::patch('/expenses/{id}', [FinanceController::class, 'updateExpense'])->name('expenses.update');
         Route::delete('/expenses/{id}', [FinanceController::class, 'destroyExpense'])->name('expenses.destroy');

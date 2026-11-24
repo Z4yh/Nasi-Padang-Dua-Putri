@@ -70,10 +70,10 @@
                         @click="onAddExpense()"
                         class="inline-flex items-center px-4 py-2 bg-[#7B1113] hover:bg-[#630E10] active:bg-[#4E0A0C] border border-transparent rounded-xl font-bold text-xs sm:text-sm text-white transition shadow-sm active:scale-95 ml-auto sm:ml-0"
                     >
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>+ Pengeluaran</span>
+                        <span>Catat Pengeluaran</span>
                     </button>
                 </div>
             </div>
@@ -155,6 +155,39 @@
             </div>
 
         </div>
+
+        {{-- Toast Notifikasi Mengambang --}}
+        <div
+            x-show="showToast"
+            x-cloak
+            x-transition:enter="transition ease-out duration-300 transform"
+            x-transition:enter-start="-translate-y-4 opacity-0"
+            x-transition:enter-end="translate-y-0 opacity-100"
+            x-transition:leave="transition ease-in duration-200 transform"
+            x-transition:leave-start="translate-y-0 opacity-100"
+            x-transition:leave-end="-translate-y-4 opacity-0"
+            class="fixed top-5 left-1/2 -translate-x-1/2 z-[70] max-w-sm w-full px-4 pointer-events-none"
+        >
+            <div
+                class="bg-stone-900/95 backdrop-blur-xs text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold border border-stone-700/80 pointer-events-auto"
+            >
+                <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </span>
+                    <span x-text="toastMessage"></span>
+                </div>
+                <button type="button" @click="showToast = false" class="text-stone-400 hover:text-white p-1 text-xs">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        {{-- Bottom Sheet Catat & Ubah Pengeluaran --}}
+        @include('keuangan.partials.expense-sheet')
+
     </div>
 
     {{-- Script Alpine.js Logika Interaktif Client --}}
@@ -196,6 +229,39 @@
                 loadingMore: false,
                 errorMessage: null,
 
+                // Toast State
+                showToast: false,
+                toastMessage: '',
+                toastTimeout: null,
+
+                // Bottom Sheet State
+                sheetOpen: false,
+                isEditMode: false,
+                editingExpenseId: null,
+                isSubmitting: false,
+                isDeleting: false,
+                showDiscardModal: false,
+                showDeleteModal: false,
+                initialFormSnapshot: '',
+
+                formData: {
+                    category: 'bahan_pasar',
+                    amount: 0,
+                    note: '',
+                    fund_source: 'kas_tunai',
+                    occurred_at: ''
+                },
+                formAmountDisplay: '',
+                formErrors: {},
+
+                categoryOptions: [
+                    { value: 'bahan_pasar', label: 'Bahan Pasar & Daging' },
+                    { value: 'gas_galon', label: 'Gas LPG & Galon' },
+                    { value: 'upah_makan', label: 'Upah / Uang Makan' },
+                    { value: 'listrik_air', label: 'Listrik & Air' },
+                    { value: 'lain_lain', label: 'Lain-lain' }
+                ],
+
                 // AbortControllers untuk mencegah request race condition
                 summaryAbort: null,
                 entriesAbort: null,
@@ -219,6 +285,22 @@
                         case 'year': return 'Tahun Ini';
                         default: return 'Hari Ini';
                     }
+                },
+
+                get isFormValid() {
+                    if (!this.formData.amount || this.formData.amount <= 0) return false;
+                    if (!this.formData.category) return false;
+                    if (!this.formData.fund_source) return false;
+                    if (this.formData.category === 'lain_lain' && (!this.formData.note || !this.formData.note.trim())) {
+                        return false;
+                    }
+                    return true;
+                },
+
+                get maxDateTimeString() {
+                    const now = new Date();
+                    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                    return local.toISOString().slice(0, 16);
                 },
 
                 setPeriod(newPeriod) {
@@ -376,13 +458,251 @@
                     }
                 },
 
-                // Handlers untuk Kerangka Commit 3
+                // Toast Helper
+                displayToast(message) {
+                    this.toastMessage = message;
+                    this.showToast = true;
+                    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+                    this.toastTimeout = setTimeout(() => {
+                        this.showToast = false;
+                    }, 3500);
+                },
+
+                // Sheet & Form Management
                 onAddExpense() {
-                    alert('Formulir pencatatan pengeluaran (bottom sheet) akan aktif di PRD 4.');
+                    this.isEditMode = false;
+                    this.editingExpenseId = null;
+                    this.formErrors = {};
+                    this.formData = {
+                        category: 'bahan_pasar',
+                        amount: 0,
+                        note: '',
+                        fund_source: 'kas_tunai',
+                        occurred_at: ''
+                    };
+                    this.formAmountDisplay = '';
+                    this.initialFormSnapshot = JSON.stringify(this.formData);
+                    this.sheetOpen = true;
+                },
+
+                onEditExpense(item) {
+                    if (!item || !item.editable) return;
+                    this.isEditMode = true;
+                    this.editingExpenseId = item.ref_id;
+                    this.formErrors = {};
+
+                    let formattedOccurredAt = '';
+                    if (item.occurred_at) {
+                        try {
+                            const d = new Date(item.occurred_at);
+                            const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+                            formattedOccurredAt = local.toISOString().slice(0, 16);
+                        } catch {
+                            formattedOccurredAt = '';
+                        }
+                    }
+
+                    // Kategori mapping
+                    const cat = item.category || 'bahan_pasar';
+                    const fund = item.fund_source || (item.method === 'transfer' ? 'transfer_bank' : 'kas_tunai');
+                    const amt = parseInt(item.amount, 10) || 0;
+
+                    this.formData = {
+                        category: cat,
+                        amount: amt,
+                        note: item.note || (item.title && item.title !== 'Pengeluaran' ? item.title : ''),
+                        fund_source: fund,
+                        occurred_at: formattedOccurredAt
+                    };
+                    this.formAmountDisplay = amt > 0 ? amt.toLocaleString('id-ID') : '';
+                    this.initialFormSnapshot = JSON.stringify(this.formData);
+                    this.sheetOpen = true;
+                },
+
+                selectCategory(cat) {
+                    this.formData.category = cat;
+                    this.clearError('category');
+                },
+
+                selectFundSource(source) {
+                    this.formData.fund_source = source;
+                    this.clearError('fund_source');
+                },
+
+                onAmountInput(event) {
+                    const rawVal = event.target.value.replace(/\D/g, '');
+                    const numericVal = parseInt(rawVal, 10) || 0;
+                    this.formData.amount = numericVal;
+                    this.formAmountDisplay = rawVal ? numericVal.toLocaleString('id-ID') : '';
+                    this.clearError('amount');
+                },
+
+                clearError(field) {
+                    if (this.formErrors[field]) {
+                        delete this.formErrors[field];
+                    }
+                },
+
+                isDirty() {
+                    return JSON.stringify(this.formData) !== this.initialFormSnapshot;
+                },
+
+                requestCloseSheet() {
+                    if (this.isDirty()) {
+                        this.showDiscardModal = true;
+                    } else {
+                        this.sheetOpen = false;
+                    }
+                },
+
+                confirmDiscardChanges() {
+                    this.showDiscardModal = false;
+                    this.sheetOpen = false;
+                },
+
+                handleEscapeKey() {
+                    if (this.showDeleteModal) {
+                        this.showDeleteModal = false;
+                        return;
+                    }
+                    if (this.showDiscardModal) {
+                        this.showDiscardModal = false;
+                        return;
+                    }
+                    if (this.sheetOpen) {
+                        this.requestCloseSheet();
+                    }
+                },
+
+                async saveExpense() {
+                    this.formErrors = {};
+
+                    // Validasi Klien
+                    if (!this.formData.amount || this.formData.amount <= 0) {
+                        this.formErrors.amount = 'Nominal pengeluaran harus lebih dari 0.';
+                        return;
+                    }
+                    if (this.formData.category === 'lain_lain' && (!this.formData.note || !this.formData.note.trim())) {
+                        this.formErrors.note = 'Keterangan rincian belanja wajib diisi untuk kategori Lain-lain.';
+                        return;
+                    }
+
+                    this.isSubmitting = true;
+
+                    try {
+                        const payload = {
+                            category: this.formData.category,
+                            amount: this.formData.amount,
+                            note: this.formData.note ? this.formData.note.trim() : null,
+                            fund_source: this.formData.fund_source,
+                        };
+
+                        if (this.formData.occurred_at) {
+                            payload.occurred_at = this.formData.occurred_at;
+                        }
+
+                        const url = this.isEditMode
+                            ? `/api/finance/expenses/${this.editingExpenseId}`
+                            : '/api/finance/expenses';
+
+                        const method = this.isEditMode ? 'PUT' : 'POST';
+
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                        const res = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {})
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.status === 422) {
+                            const data = await res.json();
+                            if (data.errors) {
+                                for (const [key, msgs] of Object.entries(data.errors)) {
+                                    this.formErrors[key] = msgs[0];
+                                }
+                            } else {
+                                this.formErrors.general = data.message || 'Data pengeluaran tidak valid.';
+                            }
+                            return;
+                        }
+
+                        if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            this.formErrors.general = data.message || 'Gagal menyimpan pengeluaran. Silakan coba lagi.';
+                            return;
+                        }
+
+                        // Berhasil
+                        this.sheetOpen = false;
+                        this.displayToast(this.isEditMode ? 'Pengeluaran berhasil diperbarui' : 'Pengeluaran tersimpan');
+                        this.loadAll();
+                    } catch (e) {
+                        console.error(e);
+                        this.formErrors.general = 'Terjadi kesalahan jaringan saat menyimpan pengeluaran.';
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                promptDeleteExpense() {
+                    this.showDeleteModal = true;
+                },
+
+                async executeDeleteExpense() {
+                    if (!this.editingExpenseId) return;
+                    this.isDeleting = true;
+
+                    try {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                        const res = await fetch(`/api/finance/expenses/${this.editingExpenseId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {})
+                            }
+                        });
+
+                        if (!res.ok && res.status !== 204) {
+                            const data = await res.json().catch(() => ({}));
+                            alert(data.message || 'Gagal menghapus pengeluaran.');
+                            return;
+                        }
+
+                        this.showDeleteModal = false;
+                        this.sheetOpen = false;
+                        this.displayToast('Pengeluaran berhasil dihapus');
+                        this.loadAll();
+                    } catch (e) {
+                        console.error(e);
+                        alert('Terjadi kesalahan jaringan saat menghapus pengeluaran.');
+                    } finally {
+                        this.isDeleting = false;
+                    }
                 },
 
                 onExport(type) {
-                    alert(`Fitur ekspor berkas pembukuan format ${type.toUpperCase()} akan aktif di PRD 4.`);
+                    const params = new URLSearchParams({
+                        format: type,
+                        period: this.period,
+                        type: this.typeFilter
+                    });
+                    if (this.date) params.append('date', this.date);
+
+                    const url = `/api/finance/export?${params.toString()}`;
+
+                    if (type === 'pdf') {
+                        window.open(url, '_blank');
+                    } else {
+                        window.location.href = url;
+                    }
                 }
             }));
         });
