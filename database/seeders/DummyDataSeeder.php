@@ -23,7 +23,6 @@ class DummyDataSeeder extends Seeder
     {
         // 1. Ambil referensi User dan Menu yang sudah ada
         $penjual = User::where('role', 'penjual')->first() ?? User::where('email', 'penjual@tigaputri.com')->first();
-        $pelanggan = User::where('role', 'pelanggan')->first() ?? User::where('email', 'pelanggan@tigaputri.com')->first();
         $superAdmin = User::where('role', 'super_admin')->first() ?? User::where('email', 'superadmin@tigaputri.com')->first();
 
         $menus = Menu::all();
@@ -286,7 +285,7 @@ class DummyDataSeeder extends Seeder
 
             $order = KateringOrder::create([
                 'nomor_pesanan'    => $nomorPesanan,
-                'id_user'          => ($k % 2 === 0) ? ($pelanggan?->id_user ?? 3) : null,
+                'id_user'          => null,
                 'nama_pemesan'     => $namaPemesanList[$k % count($namaPemesanList)],
                 'no_whatsapp'      => '08' . sprintf('12%08d', ($k * 9876543) % 100000000),
                 'tanggal_kirim'    => $tglKirim,

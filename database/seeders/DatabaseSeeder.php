@@ -44,18 +44,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 3. Akun Pelanggan
-        User::updateOrCreate(
-            ['email' => 'pelanggan@tigaputri.com'],
-            [
-                'nama_lengkap' => 'Pelanggan Setia',
-                'username'     => 'pelanggan',
-                'password'     => Hash::make('password'),
-                'role'         => 'pelanggan',
-                'status_aktif' => 1,
-            ]
-        );
-
         // 4. Default Pengaturan Katering
         SettingKatering::updateOrCreate(
             ['id_setting_katering' => 1],

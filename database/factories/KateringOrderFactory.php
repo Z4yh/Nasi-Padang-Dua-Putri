@@ -21,7 +21,6 @@ class KateringOrderFactory extends Factory
      */
     public function definition(): array
     {
-        $pelanggan = User::where('role', 'pelanggan')->first();
         $setting = SettingKatering::first();
         $minOrderBonus = $setting?->min_order_bonus ?? 20;
         $bonusBox = $setting?->jumlah_bonus_box ?? 1;
@@ -61,7 +60,7 @@ class KateringOrderFactory extends Factory
 
         return [
             'nomor_pesanan' => 'INV/TP-KTR/' . $createdAt->format('Y/m') . '/' . fake()->unique()->numerify('###'),
-            'id_user' => fake()->boolean(70) ? ($pelanggan?->id_user ?? 3) : null,
+            'id_user' => null,
             'nama_pemesan' => fake()->name(),
             'no_whatsapp' => '08' . fake()->numerify('##########'),
             'tanggal_kirim' => $tanggalKirim,
