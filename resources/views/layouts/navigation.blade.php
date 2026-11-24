@@ -14,6 +14,7 @@
     $isCmsActive = request()->routeIs('cms.*') || request()->is('cms*');
     $isMasterDataActive = request()->routeIs('master-data.*') || request()->routeIs('kategori-menu.*') || request()->is('kategori-menu*');
     $isKelolaAkunActive = request()->routeIs('kelola-akun.*') || request()->routeIs('users.*') || request()->is('kelola-akun*');
+    $isRiwayatActive = request()->routeIs('riwayat.*') || request()->is('riwayat*');
 
     // Class helper untuk pill menu
     $activeClass = 'bg-[#7B1113] text-white px-4 sm:px-5 py-1.5 rounded-full font-semibold text-sm shadow-xs transition duration-150 inline-flex items-center';
@@ -193,6 +194,9 @@
                 <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }}">
                     Katering
                 </a>
+                <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }}">
+                    Riwayat
+                </a>
                 <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }}">
                     Kasir
                 </a>
@@ -222,6 +226,9 @@
                 </a>
                 <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }}">
                     Katering
+                </a>
+                <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }}">
+                    Riwayat
                 </a>
                 <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }}">
                     Kasir
@@ -271,6 +278,9 @@
             <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }} w-full justify-start">
                 Katering
             </a>
+            <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }} w-full justify-start">
+                Riwayat
+            </a>
             <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }} w-full justify-start">
                 Kasir
             </a>
@@ -295,6 +305,9 @@
             </a>
             <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }} w-full justify-start">
                 Katering
+            </a>
+            <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }} w-full justify-start">
+                Riwayat
             </a>
             <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }} w-full justify-start">
                 Kasir
