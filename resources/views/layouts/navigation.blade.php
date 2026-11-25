@@ -16,9 +16,9 @@
     $isKelolaAkunActive = request()->routeIs('kelola-akun.*') || request()->routeIs('users.*') || request()->is('kelola-akun*');
     $isRiwayatActive = request()->routeIs('riwayat.*') || request()->is('riwayat*');
 
-    // Class helper untuk pill menu
-    $activeClass = 'bg-[#7B1113] text-white px-4 sm:px-5 py-1.5 rounded-full font-semibold text-sm shadow-xs transition duration-150 inline-flex items-center';
-    $inactiveClass = 'text-stone-700 hover:text-[#7B1113] hover:bg-[#F5EFE6]/60 px-3.5 sm:px-4 py-1.5 rounded-full font-semibold text-sm transition duration-150 inline-flex items-center';
+    // Class helper untuk pill menu (selalu horizontal & tidak wrap ke bawah pada layar HP)
+    $activeClass = 'bg-[#7B1113] text-white px-4 sm:px-5 py-1.5 rounded-full font-semibold text-xs sm:text-sm shadow-xs transition duration-150 inline-flex items-center whitespace-nowrap shrink-0';
+    $inactiveClass = 'text-stone-700 hover:text-[#7B1113] hover:bg-[#F5EFE6]/60 px-3.5 sm:px-4 py-1.5 rounded-full font-semibold text-xs sm:text-sm transition duration-150 inline-flex items-center whitespace-nowrap shrink-0';
 @endphp
 
 <!-- Google Fonts: Cinzel & Plus Jakarta Sans -->
@@ -39,10 +39,11 @@
     .no-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
     }
 </style>
 
-<nav x-data="{ mobileOpen: false, userDropdown: false }" class="bg-[#FAF7F2] border-b border-[#EAE3D9]/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] font-sans sticky top-0 z-50">
+<nav x-data="{ userDropdown: false }" class="bg-[#FAF7F2] border-b border-[#EAE3D9]/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] font-sans sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- ==================================================================== -->
@@ -78,17 +79,17 @@
             <div class="flex items-center gap-2 sm:gap-3">
 
                 @if ($isGuest)
-                    <!-- Tombol Login untuk Guest (Sesuai Desain Navbar Guest.png) -->
-                    <a href="{{ route('login') }}" class="px-5 py-1.5 bg-[#F5EFE6] hover:bg-[#EFE5D7] active:bg-[#E6D9C8] text-[#7B1113] font-bold text-sm rounded-full transition shadow-xs">
+                    <!-- Tombol Login untuk Guest -->
+                    <a href="{{ route('login') }}" class="px-4 sm:px-5 py-1.5 bg-[#F5EFE6] hover:bg-[#EFE5D7] active:bg-[#E6D9C8] text-[#7B1113] font-bold text-xs sm:text-sm rounded-full transition shadow-xs whitespace-nowrap shrink-0">
                         Login
                     </a>
                 @else
-                    <!-- Badge Peran + Dropdown User Akun (Sesuai Desain Navbar Admin.png & Navbar Superadmin.png) -->
+                    <!-- Badge Peran + Dropdown User Akun -->
                     <div class="relative" @click.away="userDropdown = false">
                         <button
                             type="button"
                             @click="userDropdown = !userDropdown"
-                            class="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F5EFE6] hover:bg-[#EFE5D7] text-[#7B1113] font-bold text-sm rounded-full transition shadow-xs focus:outline-none"
+                            class="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 bg-[#F5EFE6] hover:bg-[#EFE5D7] text-[#7B1113] font-bold text-xs sm:text-sm rounded-full transition shadow-xs focus:outline-none whitespace-nowrap shrink-0"
                             aria-expanded="false"
                         >
                             <!-- Ikon Perisai (Shield) Khas Desain -->
@@ -147,25 +148,13 @@
                     </div>
                 @endif
 
-                <!-- Tombol Hamburger Menu (Khusus Tampilan Layar HP / Mobile) -->
-                <button
-                    type="button"
-                    @click="mobileOpen = !mobileOpen"
-                    class="sm:hidden p-2 rounded-xl text-stone-600 hover:text-[#7B1113] hover:bg-[#F5EFE6] focus:outline-none transition"
-                    aria-label="Toggle Menu"
-                >
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path :class="{ 'hidden': mobileOpen, 'inline-flex': !mobileOpen }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{ 'hidden': !mobileOpen, 'inline-flex': mobileOpen }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
             </div>
         </div>
 
         <!-- ==================================================================== -->
-        <!-- BARIS BAWAH: TAUTAN MENU NAVIGASI TINGKAT ROLE (DESKTOP)             -->
+        <!-- BARIS BAWAH: TAUTAN MENU NAVIGASI TINGKAT ROLE (MOBILE & DESKTOP)    -->
         <!-- ==================================================================== -->
-        <div class="hidden sm:flex items-center gap-1.5 pt-1 pb-3 overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-1.5 pt-1 pb-3 overflow-x-auto no-scrollbar">
 
             <!-- ------------------------------------------------------------- -->
             <!-- 1. ROLE: GUEST (Navbar Guest.png)                             -->
@@ -240,81 +229,5 @@
 
         </div>
 
-    </div>
-
-    <!-- ==================================================================== -->
-    <!-- MENU MOBILE / RESPONSIVE (DRAWER SAAT LAYAR KECIL / TABLET KECIL)     -->
-    <!-- ==================================================================== -->
-    <div
-        x-show="mobileOpen"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 -translate-y-2"
-        x-transition:enter-end="opacity-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 translate-y-0"
-        x-transition:leave-end="opacity-0 -translate-y-2"
-        class="sm:hidden border-t border-[#EAE3D9] bg-[#FAF7F2] px-4 pt-3 pb-4 space-y-1.5"
-        style="display: none;"
-    >
-        @if ($isGuest)
-            <a href="{{ route('beranda') }}" class="{{ $isBerandaActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Beranda
-            </a>
-            <a href="{{ route('menu.index') }}" class="{{ $isMenuActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Menu
-            </a>
-            <div class="pt-2 border-t border-stone-200 mt-2">
-                <a href="{{ route('login') }}" class="block text-center py-2 bg-[#8A1315] text-white font-bold rounded-xl text-sm shadow-xs">
-                    Login Pengelola
-                </a>
-            </div>
-        @elseif ($isSuperAdmin)
-            <a href="{{ route('dashboard') }}" class="{{ $isBerandaActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Beranda
-            </a>
-            <a href="{{ route('menu.index') }}" class="{{ $isMenuActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Menu
-            </a>
-            <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Katering
-            </a>
-            <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Riwayat
-            </a>
-            <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Kasir
-            </a>
-            <a href="{{ route('keuangan.index') }}" class="{{ $isKeuanganActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Keuangan
-            </a>
-            <a href="{{ route('cms.index') }}" class="{{ $isCmsActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                CMS
-            </a>
-            <a href="{{ route('kategori-menu.index') }}" class="{{ $isMasterDataActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Master Data
-            </a>
-            <a href="{{ route('kelola-akun.index') }}" class="{{ $isKelolaAkunActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Kelola Akun
-            </a>
-        @else
-            <a href="{{ route('dashboard') }}" class="{{ $isBerandaActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Beranda
-            </a>
-            <a href="{{ route('menu.index') }}" class="{{ $isMenuActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Menu
-            </a>
-            <a href="{{ route('katering.index') }}" class="{{ $isKateringActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Katering
-            </a>
-            <a href="{{ route('riwayat.index') }}" class="{{ $isRiwayatActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Riwayat
-            </a>
-            <a href="{{ route('kasir.index') }}" class="{{ $isKasirActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Kasir
-            </a>
-            <a href="{{ route('keuangan.index') }}" class="{{ $isKeuanganActive ? $activeClass : $inactiveClass }} w-full justify-start">
-                Keuangan
-            </a>
-        @endif
     </div>
 </nav>
